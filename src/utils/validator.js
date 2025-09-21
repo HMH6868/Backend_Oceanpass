@@ -50,13 +50,8 @@ export function assertUpdateProfile(body) {
   }
 
   if (phone !== undefined) {
-    if (typeof phone !== 'string') {
-      const err = new Error('phone phải là chuỗi');
-      err.status = 400;
-      throw err;
-    }
-    if (phone.trim() !== '' && (phone.trim().length < 6 || phone.trim().length > 20)) {
-      const err = new Error('phone không hợp lệ (6–20 ký tự)');
+    if (!phone || typeof phone !== 'string' || phone.length !== 10 || !/^\d{10}$/.test(phone)) {
+      const err = new Error('Số điện thoại phải là 10 chữ số');
       err.status = 400;
       throw err;
     }
