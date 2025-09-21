@@ -1,6 +1,7 @@
-import express from 'express';
 import dotenv from 'dotenv';
+import express from 'express';
 import authRoutes from './routes/auth.routes.js';
+import userRoutes from './routes/user.routes.js';
 
 dotenv.config();
 
@@ -13,10 +14,24 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 // routes
 app.use('/api/auth', authRoutes);
 
+// ==== phần USER ====
+//API cập nhật thông tin user
+app.use('/api/users', userRoutes);
+
+// ==== phần xủ lý lỗi ====
 // error handler chung
 app.use((err, _req, res, _next) => {
   const status = err.status || 500;
-  res.status(status).json({ ok: false, message: err.message || 'Internal Error' });
+  const message = err.message || 'Internal Server Error';
+
+  // log ra console cho dev
+  console.error(err);
+
+  // trả JSON thay vì HTML
+  res.status(status).json({
+    ok: false,
+    message,
+  });
 });
 
 const port = process.env.PORT || 4000;

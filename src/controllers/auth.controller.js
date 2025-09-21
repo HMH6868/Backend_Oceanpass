@@ -1,4 +1,5 @@
-import { register, login } from '../services/auth.service.js';
+import { login, register } from '../services/auth.service.js';
+import { updateMe } from '../services/user.service.js';
 
 export async function handleRegister(req, res, next) {
   try {
@@ -22,4 +23,15 @@ export async function handleLogin(req, res, next) {
 
 export async function handleMe(req, res) {
   res.json({ ok: true, data: req.user });
+}
+
+export async function handleUpdateMe(req, res, next) {
+  try {
+    // Chỉ lấy name/phone – bỏ qua email nếu client cố tình gửi
+    const { name, phone } = req.body || {};
+    const updated = await updateMe(req.user.id, { name, phone });
+    res.json({ ok: true, data: updated });
+  } catch (e) {
+    next(e);
+  }
 }

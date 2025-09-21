@@ -16,6 +16,10 @@ const insertUserSQL = `
   RETURNING id, name, email, phone, role_id
 `;
 
+const findUserByPhoneSQL = `
+  SELECT id FROM users WHERE phone = $1
+`;
+
 function signToken(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES || '7d' });
 }
@@ -27,6 +31,14 @@ export async function register({ name, email, phone, password, roleName }) {
     const err = new Error('Email đã tồn tại');
     err.status = 409;
     throw err;
+  }
+  if (phone) {
+    const existedPhone = await query(findUserByPhoneSQL, [phone]);
+    if (existedPhone.rowCount > 0) {
+      const err = new Error('Số điện thoại đã tồn tại');
+      err.status = 409;
+      throw err;
+    }
   }
 
   // 2) role: mặc định từ env (customer) nếu không truyền
