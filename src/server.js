@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import express from 'express';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
+import promotionsRoutes from './routes/promotions.routes.js';
 
 dotenv.config();
 
@@ -17,6 +18,10 @@ app.use('/api/auth', authRoutes);
 // ==== phần USER ====
 //API cập nhật thông tin user
 app.use('/api/users', userRoutes);
+
+// ==== phần Promotions ====
+//API lấy danh sách khuyến mãi
+app.use('/api/promotions', promotionsRoutes);
 
 // ==== phần xủ lý lỗi ====
 // error handler chung
