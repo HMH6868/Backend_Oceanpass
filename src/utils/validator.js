@@ -57,3 +57,129 @@ export function assertUpdateProfile(body) {
     }
   }
 }
+
+// Hàm tạo mã khuyến mãi 
+export function assertCreatePromotion(body) {
+  const {
+    code, name, description,
+    type, value, min_amount, max_discount,
+    valid_from, valid_to, is_active
+  } = body || {};
+
+  if (!code || typeof code !== 'string' || code.trim().length < 3 || code.trim().length > 64) {
+    const err = new Error('code bắt buộc (3–64 ký tự)');
+    err.status = 400; throw err;
+  }
+  if (!name || typeof name !== 'string' || name.trim().length < 3 || name.trim().length > 200) {
+    const err = new Error('name bắt buộc (3–200 ký tự)');
+    err.status = 400; throw err;
+  }
+  if (!type || !['percentage','fixed'].includes(type)) {
+    const err = new Error("type phải là 'percentage' hoặc 'fixed'");
+    err.status = 400; throw err;
+  }
+  const num = (v) => (v === undefined || v === null || v === '' ? null : Number(v));
+  const vValue = num(value);
+  if (vValue === null || Number.isNaN(vValue) || vValue <= 0) {
+    const err = new Error('value phải là số > 0');
+    err.status = 400; throw err;
+  }
+  if (type === 'percentage' && vValue > 100) {
+    const err = new Error('value (%) tối đa 100');
+    err.status = 400; throw err;
+  }
+  const vMin = num(min_amount);
+  if (vMin !== null && (Number.isNaN(vMin) || vMin < 0)) {
+    const err = new Error('min_amount phải là số ≥ 0 hoặc null');
+    err.status = 400; throw err;
+  }
+  const vCap = num(max_discount);
+  if (vCap !== null && (Number.isNaN(vCap) || vCap < 0)) {
+    const err = new Error('max_discount phải là số ≥ 0 hoặc null');
+    err.status = 400; throw err;
+  }
+
+  // kiểm tra thời gian (cho phép null)
+  const from = valid_from ? new Date(valid_from) : null;
+  const to   = valid_to   ? new Date(valid_to)   : null;
+  if (from && isNaN(from.getTime())) { const err = new Error('valid_from không hợp lệ'); err.status = 400; throw err; }
+  if (to   && isNaN(to.getTime()))   { const err = new Error('valid_to không hợp lệ');   err.status = 400; throw err; }
+  if (from && to && from > to) {
+    const err = new Error('valid_from phải ≤ valid_to');
+    err.status = 400; throw err;
+  }
+
+  if (is_active !== undefined && typeof is_active !== 'boolean') {
+    const err = new Error('is_active phải là boolean');
+    err.status = 400; throw err;
+  }
+
+  // description optional: giới hạn độ dài nếu có
+  if (description !== undefined && typeof description !== 'string') {
+    const err = new Error('description phải là chuỗi');
+    err.status = 400; throw err;
+  }
+}
+
+// Cập nhật mã khuyến mãi
+export function assertUpdatePromotion(body) {
+  if (!body || typeof body !== 'object') {
+    const err = new Error('Body không hợp lệ'); err.status = 400; throw err;
+  }
+
+  const allowed = ['code','name','description','type','value','min_amount','max_discount','valid_from','valid_to','is_active'];
+  const keys = Object.keys(body);
+  if (keys.length === 0) { const err = new Error('Không có trường nào để cập nhật'); err.status = 400; throw err; }
+
+  // chặn field lạ
+  for (const k of keys) {
+    if (!allowed.includes(k)) {
+      const err = new Error(`Trường không được phép: ${k}`); err.status = 400; throw err;
+    }
+  }
+
+  if (body.code !== undefined) {
+    if (typeof body.code !== 'string' || body.code.trim().length < 3 || body.code.trim().length > 64) {
+      const err = new Error('code phải là chuỗi 3–64 ký tự'); err.status = 400; throw err;
+    }
+  }
+  if (body.name !== undefined) {
+    if (typeof body.name !== 'string' || body.name.trim().length < 3 || body.name.trim().length > 200) {
+      const err = new Error('name phải là chuỗi 3–200 ký tự'); err.status = 400; throw err;
+    }
+  }
+  if (body.description !== undefined && typeof body.description !== 'string') {
+    const err = new Error('description phải là chuỗi'); err.status = 400; throw err;
+  }
+  if (body.type !== undefined && !['percentage','fixed'].includes(body.type)) {
+    const err = new Error("type phải là 'percentage' hoặc 'fixed'"); err.status = 400; throw err;
+  }
+  if (body.value !== undefined) {
+    const v = Number(body.value);
+    if (!Number.isFinite(v) || v <= 0) { const err = new Error('value phải là số > 0'); err.status = 400; throw err; }
+    if (body.type === 'percentage' && v > 100) { const err = new Error('value (%) tối đa 100'); err.status = 400; throw err; }
+  }
+  if (body.min_amount !== undefined) {
+    const v = Number(body.min_amount);
+    if (!Number.isFinite(v) || v < 0) { const err = new Error('min_amount phải là số ≥ 0'); err.status = 400; throw err; }
+  }
+  if (body.max_discount !== undefined) {
+    const v = Number(body.max_discount);
+    if (!Number.isFinite(v) || v < 0) { const err = new Error('max_discount phải là số ≥ 0'); err.status = 400; throw err; }
+  }
+  if (body.valid_from !== undefined) {
+    const d = new Date(body.valid_from);
+    if (isNaN(d.getTime())) { const err = new Error('valid_from không hợp lệ'); err.status = 400; throw err; }
+  }
+  if (body.valid_to !== undefined) {
+    const d = new Date(body.valid_to);
+    if (isNaN(d.getTime())) { const err = new Error('valid_to không hợp lệ'); err.status = 400; throw err; }
+  }
+  if (body.valid_from && body.valid_to) {
+    const from = new Date(body.valid_from); const to = new Date(body.valid_to);
+    if (from > to) { const err = new Error('valid_from phải ≤ valid_to'); err.status = 400; throw err; }
+  }
+  if (body.is_active !== undefined && typeof body.is_active !== 'boolean') {
+    const err = new Error('is_active phải là boolean'); err.status = 400; throw err;
+  }
+}

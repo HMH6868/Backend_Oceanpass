@@ -1,9 +1,17 @@
 import { Router } from 'express';
-import { handleListPromotions } from '../controllers/promotions.controller.js';
+import {
+  handleCreatePromotion,
+  handleDeletePromotion,
+  handleListPromotions,
+  handleUpdatePromotion,
+} from '../controllers/promotions.controller.js';
+import { requireAuth } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-// Public read-only
 router.get('/', handleListPromotions);
+router.post('/', requireAuth, handleCreatePromotion);
+router.patch('/:id', requireAuth, handleUpdatePromotion);
+router.delete('/:id', requireAuth, handleDeletePromotion);
 
 export default router;
