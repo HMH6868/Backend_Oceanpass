@@ -1,8 +1,10 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import authRoutes from './routes/auth.routes.js';
-import userRoutes from './routes/user.routes.js';
+import portsRoutes from './routes/ports.routes.js';
 import promotionsRoutes from './routes/promotions.routes.js';
+import routesRoutes from './routes/routes.routes.js';
+import userRoutes from './routes/user.routes.js';
 
 dotenv.config();
 
@@ -15,13 +17,17 @@ app.get('/health', (_req, res) => res.json({ ok: true }));
 // routes
 app.use('/api/auth', authRoutes);
 
-// ==== phần USER ====
 //API cập nhật thông tin user
 app.use('/api/users', userRoutes);
 
-// ==== phần Promotions ====
 //API lấy danh sách khuyến mãi
 app.use('/api/promotions', promotionsRoutes);
+
+//API lấy danh sách cảng
+app.use('/api/ports', portsRoutes);
+
+//API lấy danh sách tuyến
+app.use('/api/routes', routesRoutes);
 
 // ==== phần xủ lý lỗi ====
 // error handler chung

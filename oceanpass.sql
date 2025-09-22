@@ -113,13 +113,18 @@ CREATE TABLE "routes" (
   "estimated_duration_minutes" INT
 );
 
+-- Enum mới cho trạng thái tàu
+CREATE TYPE "vessel_status" AS ENUM ('active', 'maintenance', 'retired');
+
 CREATE TABLE "vessels" (
   "id" VARCHAR(50) PRIMARY KEY,
   "name" VARCHAR(255) NOT NULL,
   "code" VARCHAR(20) NOT NULL UNIQUE,
   "capacity" INT NOT NULL CHECK (capacity > 0),
-  "amenities" TEXT[]
+  "amenities" TEXT[],
+  "status" vessel_status NOT NULL DEFAULT 'active'
 );
+
 
 CREATE TABLE "seat_maps" (
   "id" VARCHAR(50) PRIMARY KEY,

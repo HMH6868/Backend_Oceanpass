@@ -183,3 +183,92 @@ export function assertUpdatePromotion(body) {
     const err = new Error('is_active phải là boolean'); err.status = 400; throw err;
   }
 }
+
+// Tạo cảng 
+export function assertCreatePort(body) {
+  const { id, name, code, city, address, latitude, longitude } = body || {};
+  if (!name || typeof name !== 'string' || name.trim().length < 2) {
+    const e = new Error('name bắt buộc (>=2 ký tự)'); e.status = 400; throw e;
+  }
+  if (!code || typeof code !== 'string' || code.trim().length < 2 || code.trim().length > 10) {
+    const e = new Error('code bắt buộc (2–10 ký tự)'); e.status = 400; throw e;
+  }
+  if (!city || typeof city !== 'string' || city.trim().length < 2) {
+    const e = new Error('city bắt buộc'); e.status = 400; throw e;
+  }
+  if (latitude === undefined || longitude === undefined) {
+    const e = new Error('latitude và longitude bắt buộc'); e.status = 400; throw e;
+  }
+  const lat = Number(latitude), lon = Number(longitude);
+  if (!Number.isFinite(lat) || lat < -90 || lat > 90) { const e = new Error('latitude không hợp lệ'); e.status = 400; throw e; }
+  if (!Number.isFinite(lon) || lon < -180 || lon > 180) { const e = new Error('longitude không hợp lệ'); e.status = 400; throw e; }
+  if (id !== undefined && (typeof id !== 'string' || id.trim().length < 2 || id.trim().length > 50)) {
+    const e = new Error('id (nếu có) phải là chuỗi 2–50 ký tự'); e.status = 400; throw e;
+  }
+  if (address !== undefined && typeof address !== 'string') {
+    const e = new Error('address phải là chuỗi'); e.status = 400; throw e;
+  }
+}
+
+
+// Update cảng
+export function assertUpdatePort(body) {
+  if (!body || typeof body !== 'object') { const e = new Error('Body không hợp lệ'); e.status = 400; throw e; }
+  const allowed = ['name','code','city','address','latitude','longitude'];
+  const keys = Object.keys(body);
+  if (keys.length === 0) { const e = new Error('Không có trường nào để cập nhật'); e.status = 400; throw e; }
+  for (const k of keys) if (!allowed.includes(k)) { const e = new Error(`Trường không được phép: ${k}`); e.status = 400; throw e; }
+
+  if (body.name !== undefined && (typeof body.name !== 'string' || body.name.trim().length < 2)) {
+    const e = new Error('name không hợp lệ'); e.status = 400; throw e;
+  }
+  if (body.code !== undefined && (typeof body.code !== 'string' || body.code.trim().length < 2 || body.code.trim().length > 10)) {
+    const e = new Error('code không hợp lệ'); e.status = 400; throw e;
+  }
+  if (body.city !== undefined && (typeof body.city !== 'string' || body.city.trim().length < 2)) {
+    const e = new Error('city không hợp lệ'); e.status = 400; throw e;
+  }
+  if (body.address !== undefined && typeof body.address !== 'string') {
+    const e = new Error('address phải là chuỗi'); e.status = 400; throw e;
+  }
+  if (body.latitude !== undefined) {
+    const v = Number(body.latitude);
+    if (!Number.isFinite(v) || v < -90 || v > 90) { const e = new Error('latitude không hợp lệ'); e.status = 400; throw e; }
+  }
+  if (body.longitude !== undefined) {
+    const v = Number(body.longitude);
+    if (!Number.isFinite(v) || v < -180 || v > 180) { const e = new Error('longitude không hợp lệ'); e.status = 400; throw e; }
+  }
+}
+
+
+export function assertCreateRoute(body) {
+  const { from_port_id, to_port_id, distance_km, estimated_duration_minutes } = body || {};
+  if (!from_port_id || !to_port_id) { const e = new Error('from_port_id và to_port_id bắt buộc'); e.status = 400; throw e; }
+  if (from_port_id === to_port_id) { const e = new Error('from_port_id và to_port_id không được trùng'); e.status = 400; throw e; }
+
+  if (distance_km !== undefined && distance_km !== null) {
+    const v = Number(distance_km); if (!Number.isFinite(v) || v < 0) { const e = new Error('distance_km phải ≥ 0'); e.status = 400; throw e; }
+  }
+  if (estimated_duration_minutes !== undefined && estimated_duration_minutes !== null) {
+    const v = Number(estimated_duration_minutes);
+    if (!Number.isInteger(v) || v < 0) { const e = new Error('estimated_duration_minutes phải là số nguyên ≥ 0'); e.status = 400; throw e; }
+  }
+}
+
+export function assertUpdateRoute(body) {
+  if (!body || typeof body !== 'object') { const e = new Error('Body không hợp lệ'); e.status = 400; throw e; }
+  const allowed = ['from_port_id','to_port_id','distance_km','estimated_duration_minutes'];
+  const keys = Object.keys(body);
+  if (keys.length === 0) { const e = new Error('Không có trường nào để cập nhật'); e.status = 400; throw e; }
+  for (const k of keys) if (!allowed.includes(k)) { const e = new Error(`Trường không được phép: ${k}`); e.status = 400; throw e; }
+
+  if (body.distance_km !== undefined && body.distance_km !== null) {
+    const v = Number(body.distance_km); if (!Number.isFinite(v) || v < 0) { const e = new Error('distance_km phải ≥ 0'); e.status = 400; throw e; }
+  }
+  if (body.estimated_duration_minutes !== undefined && body.estimated_duration_minutes !== null) {
+    const v = Number(body.estimated_duration_minutes);
+    if (!Number.isInteger(v) || v < 0) { const e = new Error('estimated_duration_minutes phải là số nguyên ≥ 0'); e.status = 400; throw e; }
+  }
+}
+
