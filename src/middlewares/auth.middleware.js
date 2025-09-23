@@ -19,3 +19,14 @@ export async function requireAuth(req, res, next) {
     return res.status(401).json({ ok: false, message: 'Invalid token' });
   }
 }
+
+export const checkAdminRole = (req, res, next) => {
+  // Middleware này phải được dùng SAU `requireAuth`
+  const user = req.user;
+
+  if (!user || (user.role_id !== 1 && user.role_id !== 2)) {
+    return res.status(403).json({ message: 'Forbidden: Access is restricted to administrators.' });
+  }
+
+  next();
+};

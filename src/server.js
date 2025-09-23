@@ -5,6 +5,7 @@ import portsRoutes from './routes/ports.routes.js';
 import promotionsRoutes from './routes/promotions.routes.js';
 import routesRoutes from './routes/routes.routes.js';
 import userRoutes from './routes/user.routes.js';
+import vesselRoutes from './routes/vessel.routes.js';
 
 dotenv.config();
 
@@ -28,6 +29,8 @@ app.use('/api/ports', portsRoutes);
 
 //API lấy danh sách tuyến
 app.use('/api/routes', routesRoutes);
+
+app.use('/api/vessels', vesselRoutes);
 
 // ==== phần xủ lý lỗi ====
 // error handler chung
