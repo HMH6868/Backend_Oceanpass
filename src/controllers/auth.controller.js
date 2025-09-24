@@ -1,26 +1,16 @@
 import { login, register } from '../services/auth.service.js';
+import { assertRegister, assertLogin } from '../utils/validator.js';
 import { updateMe } from '../services/user.service.js';
 import { sendEmail } from '../email/sparkpost.js';
 import { welcomeEmail } from '../email/templates.js';
 
 export async function handleRegister(req, res, next) {
   try {
+    assertRegister(req.body);
     const { name, email, phone, password, role } = req.body;
-    const result = await register({ name, email, phone, password, roleName: role });
-
-    // 1) Trả JWT ngay để client không phải chờ
-    res.status(201).json({ ok: true, data: result });
-
-    // 2) Gửi mail nền (fire-and-forget)
-    queueMicrotask(async () => {
-      try {
-        const tmpl = welcomeEmail({ name, loginUrl: 'https://oceanpass.tech' });
-        await sendEmail({ to: email, subject: tmpl.subject, html: tmpl.html, text: tmpl.text });
-        console.log('[mail] welcome sent to', email);
-      } catch (err) {
-        console.error('[mail] send failed:', err.message);
-      }
-    });
+    // Chỉ kiểm tra email, gửi OTP, không tạo user
+    const result = await register({ name, email, phone, password, roleName: role, verified: false });
+    res.status(200).json({ ok: true, message: 'Vui lòng xác thực email bằng OTP gửi về mail.' });
   } catch (e) {
     next(e);
   }
@@ -28,6 +18,7 @@ export async function handleRegister(req, res, next) {
 
 export async function handleLogin(req, res, next) {
   try {
+    assertLogin(req.body);
     const { email, password } = req.body;
     const result = await login({ email, password });
     res.json({ ok: true, data: result });

@@ -1,0 +1,89 @@
+{
+  "info": {
+    "_postman_id": "b1e1b1e1-1234-5678-9101-abcdefabcdef",
+    "name": "Oceanpass Auth Test",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Register (Gửi OTP)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"testuser@example.com\",\n  \"phone\": \"0912345678\",\n  \"password\": \"test1234\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/auth/register",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "auth", "register"]
+        }
+      }
+    },
+    {
+      "name": "Send OTP",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"name\": \"Test User\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/otp/send-otp",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "otp", "send-otp"]
+        }
+      }
+    },
+    {
+      "name": "Verify OTP (Tạo user)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"otp\": \"<OTP nhận qua email>\",\n  \"name\": \"Test User\",\n  \"phone\": \"0912345678\",\n  \"password\": \"test1234\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/otp/verify-otp",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "otp", "verify-otp"]
+        }
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"testuser@example.com\",\n  \"password\": \"test1234\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:4000/api/auth/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4000",
+          "path": ["api", "auth", "login"]
+        }
+      }
+    }
+  ]
+}
