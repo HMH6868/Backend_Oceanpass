@@ -216,7 +216,8 @@ CREATE TABLE "passengers" (
   "booking_id" VARCHAR(50) NOT NULL REFERENCES "bookings"("id") ON DELETE CASCADE,
   "name" VARCHAR(255) NOT NULL,
   "age" INT NOT NULL CHECK (age >= 0),
-  "type" passenger_type NOT NULL
+  "type" passenger_type NOT NULL,
+  "cccd_number" VARCHAR(20)
 );
 
 -- Vé gắn với lịch trình cụ thể + ghế cụ thể

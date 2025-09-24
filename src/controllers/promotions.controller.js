@@ -37,3 +37,20 @@ export const deletePromotion = async (req, res, next) => {
     next(e);
   }
 };
+
+// === HÀM MỚI ĐỂ XỬ LÝ REQUEST KIỂM TRA MÃ ===
+export const checkPromotion = async (req, res, next) => {
+  try {
+    const { code, total_amount } = req.body;
+    if (!code || total_amount === undefined) {
+      const err = new Error('Vui lòng cung cấp "code" và "total_amount"');
+      err.status = 400;
+      throw err;
+    }
+
+    const result = await promotionsService.checkPromotion({ code, total_amount });
+    res.status(200).json({ ok: true, data: result });
+  } catch (e) {
+    next(e);
+  }
+};

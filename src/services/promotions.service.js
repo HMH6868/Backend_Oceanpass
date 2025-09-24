@@ -86,3 +86,67 @@ export const deletePromotion = async (id) => {
     throw err;
   }
 };
+
+
+
+export const checkPromotion = async ({ code, total_amount }) => {
+  // 1. Tìm mã khuyến mãi
+  const { rows } = await pool.query('SELECT * FROM promotions WHERE code = $1', [code]);
+  if (rows.length === 0) {
+    const err = new Error('Mã khuyến mãi không hợp lệ');
+    err.status = 404; // Not Found
+    throw err;
+  }
+  const promotion = rows[0];
+
+  // 2. Kiểm tra mã có được kích hoạt không
+  if (!promotion.is_active) {
+    const err = new Error('Mã khuyến mãi này đã bị vô hiệu hóa');
+    err.status = 400; // Bad Request
+    throw err;
+  }
+
+  // 3. Kiểm tra ngày hiệu lực
+  const now = new Date();
+  const valid_from = new Date(promotion.valid_from);
+  const valid_to = new Date(promotion.valid_to);
+  if (now < valid_from || now > valid_to) {
+    const err = new Error('Mã khuyến mãi đã hết hạn hoặc chưa có hiệu lực');
+    err.status = 400; // Bad Request
+    throw err;
+  }
+
+  // 4. Kiểm tra số tiền tối thiểu
+  if (total_amount < promotion.min_amount) {
+    const err = new Error(
+      `Đơn hàng của bạn phải có giá trị tối thiểu ${promotion.min_amount.toLocaleString(
+        'vi-VN'
+      )} ₫ để áp dụng mã này`
+    );
+    err.status = 400; // Bad Request
+    throw err;
+  }
+
+  // 5. Tính toán số tiền được giảm
+  let discount_amount = 0;
+  if (promotion.type === 'percentage') {
+    discount_amount = total_amount * (promotion.value / 100);
+    // Áp dụng mức giảm giá tối đa
+    if (discount_amount > promotion.max_discount) {
+      discount_amount = promotion.max_discount;
+    }
+  } else {
+    // 'fixed_amount'
+    discount_amount = promotion.value;
+  }
+
+  const final_amount = total_amount - discount_amount;
+
+  // 6. Trả về kết quả thành công
+  return {
+    valid: true,
+    discount_amount: Math.round(discount_amount),
+    final_amount: Math.round(final_amount),
+    message: 'Áp dụng mã khuyến mãi thành công!',
+  };
+};
