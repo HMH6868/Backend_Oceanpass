@@ -4,6 +4,7 @@ import authRoutes from './routes/auth.routes.js';
 import portsRoutes from './routes/ports.routes.js';
 import promotionsRoutes from './routes/promotions.routes.js';
 import routesRoutes from './routes/routes.routes.js';
+import schedulesRoutes from './routes/schedules.routes.js';
 import userRoutes from './routes/user.routes.js';
 import vesselRoutes from './routes/vessel.routes.js';
 
@@ -30,7 +31,11 @@ app.use('/api/ports', portsRoutes);
 //API lấy danh sách tuyến
 app.use('/api/routes', routesRoutes);
 
+//API về tàu (ghế, hàng, tần, khoang)
 app.use('/api/vessels', vesselRoutes);
+
+//API lấy danh lịch trình
+app.use('/api/schedules', schedulesRoutes);
 
 // ==== phần xủ lý lỗi ====
 // error handler chung
