@@ -24,8 +24,28 @@ function signToken(payload) {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES || '7d' });
 }
 
-export async function register({ name, email, phone, password, roleName }) {
-  // 1) email trùng?
+export async function register({ name, email, phone, password, roleName, verified }) {
+  // Nếu chưa verified (OTP), chỉ kiểm tra email tồn tại, không tạo user
+  if (!verified) {
+    const existed = await query(findUserByEmailSQL, [email]);
+    if (existed.rowCount > 0) {
+      const err = new Error('Email đã tồn tại');
+      err.status = 409;
+      throw err;
+    }
+    if (phone) {
+      const existedPhone = await query(findUserByPhoneSQL, [phone]);
+      if (existedPhone.rowCount > 0) {
+        const err = new Error('Số điện thoại đã tồn tại');
+        err.status = 409;
+        throw err;
+      }
+    }
+    // Không tạo user, chỉ trả về ok để gửi OTP
+    return { message: 'OTP sent' };
+  }
+
+  // verified=true: tạo user thật sự
   const existed = await query(findUserByEmailSQL, [email]);
   if (existed.rowCount > 0) {
     const err = new Error('Email đã tồn tại');
@@ -40,8 +60,6 @@ export async function register({ name, email, phone, password, roleName }) {
       throw err;
     }
   }
-
-  // 2) role: mặc định từ env (customer) nếu không truyền
   const role = roleName || process.env.DEFAULT_ROLE || 'customer';
   const roleRes = await query(roleIdByNameSQL, [role]);
   if (roleRes.rowCount === 0) {
@@ -50,16 +68,10 @@ export async function register({ name, email, phone, password, roleName }) {
     throw err;
   }
   const roleId = roleRes.rows[0].id;
-
-  // 3) hash mật khẩu
   const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '12', 10);
   const passwordHash = await bcrypt.hash(password, saltRounds);
-
-  // 4) insert
   const ins = await query(insertUserSQL, [name, email, phone || null, passwordHash, roleId]);
   const user = ins.rows[0];
-
-  // 5) token
   const token = signToken({ sub: user.id, roleId: user.role_id });
   return { user, token };
 }
