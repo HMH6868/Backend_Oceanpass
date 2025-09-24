@@ -1,22 +1,17 @@
 import { Router } from 'express';
 import {
-  handleListPorts,
-  handleGetPort,
-  handleCreatePort,
-  handleUpdatePort,
-  handleDeletePort
+  createPort,
+  deletePort,
+  getPorts,
+  updatePort,
 } from '../controllers/ports.controller.js';
-import { requireAuth } from '../middlewares/auth.middleware.js';
+import { requireAuth, checkAdminRole } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-// Public
-router.get('/', handleListPorts);
-router.get('/:id', handleGetPort);
-
-// Protected (role_id 1 or 2)
-router.post('/', requireAuth, handleCreatePort);
-router.patch('/:id', requireAuth, handleUpdatePort);
-router.delete('/:id', requireAuth, handleDeletePort);
+router.get('/', getPorts);
+router.post('/', requireAuth, checkAdminRole, createPort);
+router.patch('/:id', requireAuth, checkAdminRole, updatePort);
+router.delete('/:id', requireAuth, checkAdminRole, deletePort);
 
 export default router;

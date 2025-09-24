@@ -1,17 +1,17 @@
 import { Router } from 'express';
 import {
-  handleCreatePromotion,
-  handleDeletePromotion,
-  handleListPromotions,
-  handleUpdatePromotion,
+  createPromotion,
+  deletePromotion,
+  getPromotions,
+  updatePromotion,
 } from '../controllers/promotions.controller.js';
-import { requireAuth } from '../middlewares/auth.middleware.js';
+import { requireAuth, checkAdminRole } from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
-router.get('/', handleListPromotions);
-router.post('/', requireAuth, handleCreatePromotion);
-router.patch('/:id', requireAuth, handleUpdatePromotion);
-router.delete('/:id', requireAuth, handleDeletePromotion);
+router.get('/', getPromotions);
+router.post('/', requireAuth, checkAdminRole, createPromotion);
+router.patch('/:id', requireAuth, checkAdminRole, updatePromotion);
+router.delete('/:id', requireAuth, checkAdminRole, deletePromotion);
 
 export default router;
