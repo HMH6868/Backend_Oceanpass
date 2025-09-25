@@ -19,6 +19,9 @@ app.use(express.json());
 // healthcheck
 app.get('/health', (_req, res) => res.json({ ok: true }));
 
+app.get('/', (req, res) => {
+  res.status(200).send('<h1>🎉 OceanPass API</h1><p>Server đang hoạt động</p>');
+});
 
 // routes
 app.use('/api/auth', authRoutes);
