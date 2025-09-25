@@ -45,7 +45,7 @@ DROP TYPE IF EXISTS "txn_type" CASCADE;
 -- ============================================================
 -- 1) ENUMS
 -- ============================================================
-CREATE TYPE "role_type"        AS ENUM ('admin', 'staff', 'customer');
+CREATE TYPE "role_type"        AS ENUM ('admin', 'manager', 'staff', 'customer');
 CREATE TYPE "trip_type"        AS ENUM ('one-way', 'round-trip');
 CREATE TYPE "passenger_type"   AS ENUM ('adult', 'child');
 CREATE TYPE "seat_status"      AS ENUM ('available', 'reserved', 'booked');
@@ -522,7 +522,7 @@ ORDER BY day_utc;
 -- ============================================================
 -- 10) SEED DATA (nhẹ nhàng để demo)
 -- ============================================================
-INSERT INTO roles(name) VALUES ('admin'), ('staff'), ('customer');
+INSERT INTO roles(name) VALUES ('admin'), ('manager'), ('staff'), ('customer');
 
 -- Admin user
 INSERT INTO users(id, name, email, phone, password_hash, role_id)

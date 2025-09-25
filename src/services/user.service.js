@@ -1,3 +1,15 @@
+// Cập nhật role cho user bất kỳ (chỉ admin)
+export async function updateUserRole(userId, roleId) {
+  // roleId: số nguyên, ví dụ 1-admin, 2-manager, 3-staff, 4-cashier
+  const sql = `UPDATE users SET role_id = $1 WHERE id = $2 RETURNING id, name, email, phone, role_id, (SELECT name FROM roles WHERE id = role_id) AS role_name`;
+  const rs = await query(sql, [roleId, userId]);
+  if (rs.rowCount === 0) {
+    const err = new Error('User không tồn tại');
+    err.status = 404;
+    throw err;
+  }
+  return rs.rows[0];
+}
 import { query } from '../db.js';
 
 const phoneExistsForAnotherUserSQL = `
@@ -42,7 +54,7 @@ export async function updateMe(userId, { name, phone }) {
     UPDATE users
        SET ${sets.join(', ')}
      WHERE id = $${i}
-     RETURNING id, name, email, phone, role_id
+     RETURNING id, name, email, phone, role_id, (SELECT name FROM roles WHERE id = role_id) AS role_name
   `;
   vals.push(userId);
 
