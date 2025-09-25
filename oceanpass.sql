@@ -52,7 +52,7 @@ CREATE TYPE "seat_status"      AS ENUM ('available', 'reserved', 'booked');
 CREATE TYPE "booking_status"   AS ENUM ('pending', 'confirmed', 'cancelled', 'completed', 'refunded');
 CREATE TYPE "payment_method"   AS ENUM ('card', 'e-wallet', 'bank-transfer', 'cash');
 CREATE TYPE "payment_status"   AS ENUM ('unpaid', 'paid', 'failed', 'refunded', 'partial');
-CREATE TYPE "schedule_status"  AS ENUM ('active', 'cancelled', 'full');
+CREATE TYPE "schedule_status"  AS ENUM ('active', 'cancelled', '"completed"');
 CREATE TYPE "promotion_type"   AS ENUM ('percentage', 'fixed');
 CREATE TYPE "seat_class_type"  AS ENUM ('economy', 'business', 'vip', 'cabin');
 CREATE TYPE "invoice_status"   AS ENUM ('draft', 'issued', 'void', 'refunded');
