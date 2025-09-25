@@ -6,14 +6,14 @@ const roleIdByNameSQL = `
   SELECT id FROM roles WHERE name = $1
 `;
 const findUserByEmailSQL = `
-  SELECT id, name, email, phone, password_hash, role_id
+  SELECT id, name, email, phone, password_hash, role_id, avatar
   FROM users
   WHERE email = $1
 `;
 const insertUserSQL = `
   INSERT INTO users (id, name, email, phone, password_hash, role_id)
   VALUES (gen_random_uuid(), $1, $2, $3, $4, $5)
-  RETURNING id, name, email, phone, role_id
+  RETURNING id, name, email, phone, role_id, avatar
 `;
 
 const findUserByPhoneSQL = `

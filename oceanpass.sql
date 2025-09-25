@@ -74,6 +74,7 @@ CREATE TABLE "users" (
   "phone" VARCHAR(20) UNIQUE,
   "password_hash" VARCHAR(255) NOT NULL,
   "role_id" INT NOT NULL REFERENCES "roles"("id"),
+  "avatar" TEXT DEFAULT 'https://i.imgur.com/ezYOpsx.png',
   "date_of_birth" DATE,
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP

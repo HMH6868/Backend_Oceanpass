@@ -31,10 +31,12 @@ Các API này có thể được truy cập bởi bất kỳ ai mà không cần
 
 Yêu cầu xác thực (`Bearer Token`).
 
-| Phương thức | Endpoint        | Chức năng                                                  | Payload Mẫu (JSON)                                |
-| :---------- | :-------------- | :--------------------------------------------------------- | :------------------------------------------------ |
-| `GET`       | `/api/auth/me`  | 👤 Lấy thông tin **người dùng hiện tại.**                  | (Không cần)                                       |
-| `PATCH`     | `/api/users/me` | ✏️ **Cập nhật thông tin cá nhân** (chỉ `name` và `phone`). | `{"name": "Nguyen Van B", "phone": "0912345678"}` |
+| Phương thức | Endpoint                 | Chức năng                                                          | Payload Mẫu (JSON)                                                     |
+| :---------- | :----------------------- | :----------------------------------------------------------------- | :--------------------------------------------------------------------- |
+| `GET`       | `/api/auth/me`           | 👤 Lấy thông tin **người dùng hiện tại.**                          | (Không cần)                                                            |
+| `PATCH`     | `/api/users/me`          | ✏️ **Cập nhật thông tin cá nhân** (chỉ `name`, `phone`, `avatar`). | `{"name": "Nguyen Van B", "phone": "0912345678", "avatar": "new_url"}` |
+| `PATCH`     | `/api/users/me/avatar`   | 🖼️ **Cập nhật ảnh đại diện** của người dùng.                       | `{"avatar": "https://i.imgur.com/new_avatar.png"}`                     |
+| `PATCH`     | `/api/users/me/password` | 🔑 **Thay đổi mật khẩu** của người dùng.                           | `{"currentPassword": "mat_khau_cu", "newPassword": "mat_khau_moi"}`    |
 
 ---
 
