@@ -380,16 +380,18 @@ export async function confirmCashPayment(bookingId, actor) {
     // BƯỚC TÌM KIẾM NHÂN VIÊN ĐÃ ĐƯỢC XÓA BỎ
 
     // 1. Lấy và khóa đơn hàng để xử lý
-    const bookingRes = await client.query(
-      `SELECT * FROM bookings WHERE id = $1 FOR UPDATE`,
-      [bookingId]
-    );
+    const bookingRes = await client.query(`SELECT * FROM bookings WHERE id = $1 FOR UPDATE`, [
+      bookingId,
+    ]);
     if (bookingRes.rowCount === 0) {
       throw Object.assign(new Error('Không tìm thấy đơn hàng.'), { status: 404 });
     }
     const booking = bookingRes.rows[0];
     if (booking.status !== 'pending') {
-      throw Object.assign(new Error(`Đơn hàng đã ở trạng thái ${booking.status}, không thể xác nhận.`), { status: 400 });
+      throw Object.assign(
+        new Error(`Đơn hàng đã ở trạng thái ${booking.status}, không thể xác nhận.`),
+        { status: 400 }
+      );
     }
 
     // 2. Cập nhật đơn hàng mà không cần created_by_employee_id
@@ -403,35 +405,41 @@ export async function confirmCashPayment(bookingId, actor) {
 
     // Các bước 3, 4, 5, 6 (lấy hành khách, ghế và tạo vé) giữ nguyên
     // 3. Lấy danh sách hành khách của đơn hàng
-    const passengersRes = await client.query(
-      `SELECT * FROM passengers WHERE booking_id = $1`,
-      [bookingId]
-    );
+    const passengersRes = await client.query(`SELECT * FROM passengers WHERE booking_id = $1`, [
+      bookingId,
+    ]);
     const passengers = passengersRes.rows;
     if (passengers.length === 0) {
-        throw new Error('Đơn hàng chưa có thông tin hành khách.');
+      throw new Error('Đơn hàng chưa có thông tin hành khách.');
     }
 
     // 4. Lấy danh sách ghế đã giữ của đơn hàng
     const seatsRes = await client.query(
-        `SELECT * FROM schedule_seat_status WHERE booking_id = $1`,
-        [bookingId]
+      `SELECT * FROM schedule_seat_status WHERE booking_id = $1`,
+      [bookingId]
     );
     const reservedSeats = seatsRes.rows;
 
     // 5. Tạo vé cho từng hành khách
     for (let i = 0; i < passengers.length; i++) {
-        const passenger = passengers[i];
-        const seat = reservedSeats[i];
-        const ticketId = `TICKET-${translator.new().toUpperCase()}`;
-        
-        const scheduleId = booking.outbound_schedule_id;
+      const passenger = passengers[i];
+      const seat = reservedSeats[i];
+      const ticketId = `TICKET-${translator.new().toUpperCase()}`;
 
-        await client.query(
-            `INSERT INTO tickets (id, booking_id, schedule_id, passenger_id, seat_id, qr_code_data)
+      const scheduleId = booking.outbound_schedule_id;
+
+      await client.query(
+        `INSERT INTO tickets (id, booking_id, schedule_id, passenger_id, seat_id, qr_code_data)
              VALUES ($1, $2, $3, $4, $5, $6)`,
-            [ticketId, bookingId, scheduleId, passenger.id, seat.seat_id, `${ticketId}|${passenger.name}`]
-        );
+        [
+          ticketId,
+          bookingId,
+          scheduleId,
+          passenger.id,
+          seat.seat_id,
+          `${ticketId}|${passenger.name}`,
+        ]
+      );
     }
 
     // 6. Cập nhật trạng thái ghế từ 'reserved' thành 'booked'
@@ -448,6 +456,71 @@ export async function confirmCashPayment(bookingId, actor) {
   } finally {
     client.release();
   }
+}
+
+/**
+ * Lấy danh sách các đơn hàng của một người dùng cụ thể.
+ * (ĐÃ ĐƯỢC NÂNG CẤP)
+ * @param {string} userId - ID của người dùng
+ * @returns {Promise<Array>} - Danh sách các đơn hàng với đầy đủ chi tiết
+ */
+export async function getBookingsByUserId(userId) {
+  const query = `
+    SELECT 
+        b.id,
+        b.code,
+        b.status,
+        b.final_amount,
+        b.discount_amount,
+        b.created_at,
+        b.payment_method,
+        b.trip_type,
+        
+        -- Lấy thông tin chi tiết của chuyến đi
+        json_build_object(
+            'departure_time', sch.departure_time,
+            'from_port_name', p_from.name,
+            'to_port_name', p_to.name
+        ) as schedule_info,
+        
+        -- Lấy danh sách hành khách và ghế của họ
+        (
+            SELECT json_agg(
+                json_build_object(
+                    'name', p.name,
+                    'type', p.type,
+                    'seat_number', s.seat_number
+                )
+            )
+            FROM passengers p
+            -- Mỗi hành khách có 1 vé, mỗi vé có 1 ghế
+            JOIN tickets t ON p.id = t.passenger_id
+            JOIN seats s ON t.seat_id = s.id
+            WHERE p.booking_id = b.id
+        ) as passengers,
+
+        -- Đếm tổng số hành khách
+        (
+            SELECT COUNT(*) 
+            FROM passengers 
+            WHERE booking_id = b.id
+        ) as passenger_count
+
+    FROM 
+        bookings b
+    -- JOIN các bảng liên quan để lấy thông tin chuyến đi
+    JOIN schedules sch ON b.outbound_schedule_id = sch.id
+    JOIN routes r ON sch.route_id = r.id
+    JOIN ports p_from ON r.from_port_id = p_from.id
+    JOIN ports p_to ON r.to_port_id = p_to.id
+    WHERE 
+        b.user_id = $1
+    ORDER BY 
+        b.created_at DESC
+  `;
+
+  const { rows } = await pool.query(query, [userId]);
+  return rows;
 }
 
 /**
@@ -516,4 +589,37 @@ export async function getBookingFullDetails(bookingId) {
     throw Object.assign(new Error('Booking not found'), { status: 404 });
   }
   return rows[0];
+}
+
+/**
+ * Lấy danh sách vé của một đơn hàng cụ thể.
+ * @param {string} bookingId - ID của đơn hàng
+ * @returns {Promise<Array>} - Danh sách các vé
+ */
+export async function getTicketsByBookingId(bookingId) {
+  const query = `
+    SELECT
+      t.id as ticket_id,
+      t.qr_code_data,
+      p.name as passenger_name,
+      p.type as passenger_type,
+      s.seat_number,
+      v.name as vessel_name,
+      sch.departure_time,
+      sch.arrival_time,
+      p_from.name as from_port_name,
+      p_to.name as to_port_name
+    FROM tickets t
+    JOIN passengers p ON t.passenger_id = p.id
+    JOIN seats s ON t.seat_id = s.id
+    JOIN schedules sch ON t.schedule_id = sch.id
+    JOIN vessels v ON sch.vessel_id = v.id
+    JOIN routes r ON sch.route_id = r.id
+    JOIN ports p_from ON r.from_port_id = p_from.id
+    JOIN ports p_to ON r.to_port_id = p_to.id
+    WHERE t.booking_id = $1
+    ORDER BY p.name;
+  `;
+  const { rows } = await pool.query(query, [bookingId]);
+  return rows;
 }

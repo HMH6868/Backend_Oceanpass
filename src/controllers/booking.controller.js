@@ -106,8 +106,8 @@ export async function handleAddPassengers(req, res, next) {
 export async function handleConfirmCashPayment(req, res, next) {
   try {
     // Middleware requireAuth đã thêm req.user
-    const actor = req.user; 
-    
+    const actor = req.user;
+
     // Kiểm tra quyền: chỉ admin (1) hoặc staff (2)
     if (!actor || ![1, 2].includes(actor.role_id)) {
       const err = new Error('Forbidden: Bạn không có quyền thực hiện hành động này.');
@@ -123,11 +123,38 @@ export async function handleConfirmCashPayment(req, res, next) {
   }
 }
 
+/**
+ * Xử lý yêu cầu lấy danh sách đơn hàng của người dùng hiện tại
+ */
+export async function handleGetUserBookings(req, res, next) {
+  try {
+    const userId = req.user.id;
+    const bookings = await bookingService.getBookingsByUserId(userId);
+    res.status(200).json({ ok: true, data: bookings });
+  } catch (e) {
+    next(e);
+  }
+}
+
 export async function handleGetBookingFullDetails(req, res, next) {
   try {
     const { id } = req.params;
     const bookingDetails = await bookingService.getBookingFullDetails(id);
     res.status(200).json({ ok: true, data: bookingDetails });
+  } catch (e) {
+    next(e);
+  }
+}
+
+/**
+ * Xử lý yêu cầu lấy danh sách vé của một đơn hàng.
+ */
+export async function handleGetBookingTickets(req, res, next) {
+  try {
+    const { id } = req.params;
+    // Optional: Bạn có thể thêm logic kiểm tra xem người dùng có quyền xem booking này không
+    const tickets = await bookingService.getTicketsByBookingId(id);
+    res.status(200).json({ ok: true, data: tickets });
   } catch (e) {
     next(e);
   }
