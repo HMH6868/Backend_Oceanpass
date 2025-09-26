@@ -28,6 +28,7 @@ DROP TABLE IF EXISTS "ports" CASCADE;
 DROP TABLE IF EXISTS "users" CASCADE;
 DROP TABLE IF EXISTS "employees" CASCADE;
 DROP TABLE IF EXISTS "roles" CASCADE;
+DROP TABLE IF EXISTS "passengers" CASCADE;
 
 DROP TYPE IF EXISTS "role_type" CASCADE;
 DROP TYPE IF EXISTS "trip_type" CASCADE;
@@ -49,7 +50,7 @@ CREATE TYPE "role_type"        AS ENUM ('admin', 'staff', 'customer');
 CREATE TYPE "trip_type"        AS ENUM ('one-way', 'round-trip');
 CREATE TYPE "passenger_type"   AS ENUM ('adult', 'child');
 CREATE TYPE "seat_status"      AS ENUM ('available', 'reserved', 'booked');
-CREATE TYPE "booking_status"   AS ENUM ('pending', 'confirmed', 'cancelled', 'completed', 'refunded');
+CREATE TYPE "booking_status"   AS ENUM ('pending', 'confirmed', 'cancelled', 'completed', 'refunded', 'expired');
 CREATE TYPE "payment_method"   AS ENUM ('card', 'e-wallet', 'bank-transfer', 'cash');
 CREATE TYPE "payment_status"   AS ENUM ('unpaid', 'paid', 'failed', 'refunded', 'partial');
 CREATE TYPE "schedule_status"  AS ENUM ('active', 'cancelled', '"completed"');
@@ -57,6 +58,7 @@ CREATE TYPE "promotion_type"   AS ENUM ('percentage', 'fixed');
 CREATE TYPE "seat_class_type"  AS ENUM ('economy', 'business', 'vip', 'cabin');
 CREATE TYPE "invoice_status"   AS ENUM ('draft', 'issued', 'void', 'refunded');
 CREATE TYPE "txn_type"         AS ENUM ('payment', 'refund', 'adjustment');
+CREATE TYPE "schedule_seat_state_enum" AS ENUM ('reserved', 'booked');
 
 -- ============================================================
 -- 2) CORE TABLES (users/roles/employees)
@@ -157,7 +159,6 @@ CREATE TABLE "seats" (
   "id" VARCHAR(50) PRIMARY KEY,
   "row_id" VARCHAR(50) NOT NULL REFERENCES "rows"("id") ON DELETE CASCADE,
   "seat_number" VARCHAR(10) NOT NULL,
-  "status" seat_status NOT NULL DEFAULT 'available',
   "adult_price" NUMERIC(12,2) NOT NULL,
   "child_price" NUMERIC(12,2) NOT NULL,
   UNIQUE ("row_id", "seat_number")
@@ -195,7 +196,7 @@ CREATE TABLE "promotions" (
 
 CREATE TABLE "bookings" (
   "id" VARCHAR(50) PRIMARY KEY,
-  "code" VARCHAR(20) NOT NULL UNIQUE,
+  "code" VARCHAR(50) NOT NULL UNIQUE,
   "user_id" UUID REFERENCES "users"("id") ON DELETE SET NULL,
   "trip_type" trip_type NOT NULL,
   "outbound_schedule_id" VARCHAR(50) NOT NULL REFERENCES "schedules"("id") ON DELETE RESTRICT,
@@ -207,16 +208,28 @@ CREATE TABLE "bookings" (
   "status" booking_status NOT NULL DEFAULT 'pending',
   "payment_method" payment_method,
   "created_by_employee_id" UUID REFERENCES "employees"("id") ON DELETE SET NULL,
+  "expires_at" TIMESTAMPTZ NULL, -- Thêm dòng này
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CHECK (final_amount = GREATEST(total_amount - COALESCE(discount_amount,0), 0))
+);
+
+-- Bảng theo dõi trạng thái ghế theo từng chuyến
+CREATE TABLE "schedule_seat_status" (
+  "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  "schedule_id" VARCHAR(50) NOT NULL REFERENCES "schedules"("id") ON DELETE CASCADE,
+  "seat_id" VARCHAR(50) NOT NULL REFERENCES "seats"("id") ON DELETE CASCADE,
+  "booking_id" VARCHAR(50) REFERENCES "bookings"("id") ON DELETE SET NULL,
+  "status" schedule_seat_state_enum NOT NULL,
+  "reserved_until" TIMESTAMPTZ,
+  CONSTRAINT "uq_schedule_seat" UNIQUE ("schedule_id", "seat_id")
 );
 
 CREATE TABLE "passengers" (
   "id" VARCHAR(50) PRIMARY KEY,
   "booking_id" VARCHAR(50) NOT NULL REFERENCES "bookings"("id") ON DELETE CASCADE,
   "name" VARCHAR(255) NOT NULL,
-  "age" INT NOT NULL CHECK (age >= 0),
+  "date_of_birth" DATE NOT NULL, -- Đã thay đổi từ age sang date_of_birth
   "type" passenger_type NOT NULL,
   "cccd_number" VARCHAR(20)
 );
@@ -233,6 +246,7 @@ CREATE TABLE "tickets" (
   UNIQUE ("schedule_id", "seat_id"),           -- chặn trùng ghế cùng chuyến
   UNIQUE ("passenger_id", "schedule_id")       -- 1 hành khách 1 vé / 1 chiều
 );
+
 
 -- ============================================================
 -- 5) INVOICES / PAYMENTS / TRANSACTIONS / AUDIT
@@ -322,14 +336,15 @@ CREATE INDEX "idx_txn_booking"      ON "transactions"("booking_id");
 CREATE OR REPLACE FUNCTION seat_available(p_schedule_id VARCHAR, p_seat_id VARCHAR)
 RETURNS BOOLEAN AS $$
 BEGIN
-  -- Nếu tồn tại ticket với cùng schedule & seat -> không còn trống
+  -- Kiểm tra trong bảng trạng thái ghế mới
   IF EXISTS (
-    SELECT 1 FROM tickets t
-    WHERE t.schedule_id = p_schedule_id AND t.seat_id = p_seat_id
+    SELECT 1 FROM schedule_seat_status sss
+    WHERE sss.schedule_id = p_schedule_id AND sss.seat_id = p_seat_id
   ) THEN
-    RETURN FALSE;
+    RETURN FALSE; -- Không còn trống
   END IF;
-  RETURN TRUE;
+
+  RETURN TRUE; -- Còn trống
 END;
 $$ LANGUAGE plpgsql;
 

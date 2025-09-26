@@ -65,3 +65,16 @@ export const deleteSchedule = async (req, res, next) => {
     next(e);
   }
 };
+
+/**
+ * Controller để lấy chi tiết lịch trình và sơ đồ ghế.
+ */
+export const handleGetScheduleWithSeatMap = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const scheduleDetails = await schedulesService.getScheduleWithSeatMap(id);
+    res.status(200).json({ ok: true, data: scheduleDetails });
+  } catch (e) {
+    next(e);
+  }
+};
