@@ -65,7 +65,8 @@ export const getVesselDetailsById = async (vesselId) => {
                             'seat_id', st.id,
                             'seat_number', st.seat_number,
                             'adult_price', st.adult_price,
-                            'child_price', st.child_price 
+                            'child_price', st.child_price,
+                            'senior_price', st.senior_price 
                           ) ORDER BY st.seat_number
                         ) FROM seats st WHERE st.row_id = r.id
                       )
@@ -334,7 +335,7 @@ export const deleteRow = async (id) => {
 };
 
 // --- Seat ---
-export const addSeat = async ({ row_id, seat_number, adult_price, child_price }) => {
+export const addSeat = async ({ row_id, seat_number, adult_price }) => {
   // Kiểm tra xem row_id có tồn tại không
   const rowResult = await pool.query('SELECT id FROM rows WHERE id = $1', [row_id]);
   if (rowResult.rowCount === 0) {
@@ -353,17 +354,25 @@ export const addSeat = async ({ row_id, seat_number, adult_price, child_price })
   }
 
   // BƯỚC 3: Nếu chưa đủ, tiến hành thêm ghế mới
+  const adultPrice = Number(adult_price);
+  const childPrice = adultPrice * 0.75;
+  const seniorPrice = adultPrice * 0.85;
+
   const { rows } = await pool.query(
-    'INSERT INTO seats (id, row_id, seat_number, adult_price, child_price) VALUES (gen_random_uuid(), $1, $2, $3, $4) RETURNING *',
-    [row_id, seat_number, adult_price, child_price]
+    'INSERT INTO seats (id, row_id, seat_number, adult_price, child_price, senior_price) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5) RETURNING *',
+    [row_id, seat_number, adultPrice, childPrice, seniorPrice]
   );
   return rows[0];
 };
 
-export const updateSeat = async (id, { seat_number, adult_price, child_price }) => {
+export const updateSeat = async (id, { seat_number, adult_price }) => {
+  const adultPrice = Number(adult_price);
+  const childPrice = adultPrice * 0.75;
+  const seniorPrice = adultPrice * 0.85;
+
   const { rows } = await pool.query(
-    'UPDATE seats SET seat_number = $1, adult_price = $2, child_price = $3 WHERE id = $4 RETURNING *',
-    [seat_number, adult_price, child_price, id]
+    'UPDATE seats SET seat_number = $1, adult_price = $2, child_price = $3, senior_price = $4 WHERE id = $5 RETURNING *',
+    [seat_number, adultPrice, childPrice, seniorPrice, id]
   );
   return rows[0];
 };
@@ -374,17 +383,21 @@ export const deleteSeat = async (id) => {
 };
 
 // === SERVICE MỚI ĐỂ CẬP NHẬT GIÁ CHO KHOANG ===
-export const updatePriceForSection = async (section_id, { adult_price, child_price }) => {
+export const updatePriceForSection = async (section_id, { adult_price }) => {
+  const adultPrice = Number(adult_price);
+  const childPrice = adultPrice * 0.75;
+  const seniorPrice = adultPrice * 0.85;
+
   const { rows } = await pool.query(
     `
         UPDATE seats
-        SET adult_price = $1, child_price = $2
+        SET adult_price = $1, child_price = $2, senior_price = $3
         WHERE row_id IN (
-            SELECT id FROM rows WHERE section_id = $3
+            SELECT id FROM rows WHERE section_id = $4
         )
         RETURNING *;
         `,
-    [adult_price, child_price, section_id]
+    [adultPrice, childPrice, seniorPrice, section_id]
   );
 
   if (rows.length === 0) {

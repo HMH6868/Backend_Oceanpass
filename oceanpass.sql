@@ -48,7 +48,7 @@ DROP TYPE IF EXISTS "txn_type" CASCADE;
 -- ============================================================
 CREATE TYPE "role_type"        AS ENUM ('admin', 'staff', 'customer');
 CREATE TYPE "trip_type"        AS ENUM ('one-way', 'round-trip');
-CREATE TYPE "passenger_type"   AS ENUM ('adult', 'child');
+CREATE TYPE "passenger_type" AS ENUM ('adult', 'child', 'senior');
 CREATE TYPE "seat_status"      AS ENUM ('available', 'reserved', 'booked');
 CREATE TYPE "booking_status"   AS ENUM ('pending', 'confirmed', 'cancelled', 'completed', 'refunded', 'expired');
 CREATE TYPE "payment_method"   AS ENUM ('card', 'e-wallet', 'bank-transfer', 'cash');
@@ -160,6 +160,7 @@ CREATE TABLE "seats" (
   "seat_number" VARCHAR(10) NOT NULL,
   "adult_price" NUMERIC(12,2) NOT NULL,
   "child_price" NUMERIC(12,2) NOT NULL,
+  "senior_price" NUMERIC(12,2) NOT NULL, 
   UNIQUE ("row_id", "seat_number")
 );
 
@@ -230,7 +231,7 @@ CREATE TABLE "passengers" (
   "id" VARCHAR(50) PRIMARY KEY,
   "booking_id" VARCHAR(50) NOT NULL REFERENCES "bookings"("id") ON DELETE CASCADE,
   "name" VARCHAR(255) NOT NULL,
-  "date_of_birth" DATE NOT NULL, -- Đã thay đổi từ age sang date_of_birth
+  "date_of_birth" DATE NOT NULL,
   "type" passenger_type NOT NULL,
   "cccd_number" VARCHAR(20)
 );

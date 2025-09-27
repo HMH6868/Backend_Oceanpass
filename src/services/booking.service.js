@@ -16,7 +16,7 @@ async function calculateTotalAmount(seats, client) {
   const queryRunner = client || pool;
 
   const { rows } = await queryRunner.query(
-    `SELECT id, adult_price, child_price FROM seats WHERE id = ANY($1::varchar[])`,
+    `SELECT id, adult_price, child_price, senior_price FROM seats WHERE id = ANY($1::varchar[])`,
     [seatIds]
   );
 
@@ -26,8 +26,13 @@ async function calculateTotalAmount(seats, client) {
   for (const seat of seats) {
     const priceInfo = priceMap.get(seat.seatId);
     if (priceInfo) {
-      total +=
-        seat.type === 'adult' ? Number(priceInfo.adult_price) : Number(priceInfo.child_price);
+      if (seat.type === 'adult') {
+        total += Number(priceInfo.adult_price);
+      } else if (seat.type === 'child') {
+        total += Number(priceInfo.child_price);
+      } else if (seat.type === 'senior') {
+        total += Number(priceInfo.senior_price);
+      }
     }
   }
   return total;
