@@ -191,6 +191,8 @@ CREATE TABLE "promotions" (
   "valid_from" TIMESTAMPTZ NOT NULL,
   "valid_to"   TIMESTAMPTZ NOT NULL,
   "is_active" BOOLEAN NOT NULL DEFAULT true,
+  "uses_count" INT NOT NULL DEFAULT 0, 
+  "max_uses" INT,                      
   CHECK (valid_to > valid_from)
 );
 

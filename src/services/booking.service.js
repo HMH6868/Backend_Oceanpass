@@ -291,6 +291,11 @@ export async function applyPromotionToBooking(bookingId, promotionCode) {
       [promotionResult.discount_amount, promotionResult.final_amount, promotionId, bookingId]
     );
 
+    // Tăng số lượt đã sử dụng của mã khuyến mãi
+    await client.query(`UPDATE promotions SET uses_count = uses_count + 1 WHERE id = $1`, [
+      promotionId,
+    ]);
+
     await client.query('COMMIT');
     return updatedBookingRes.rows[0];
   } catch (error) {

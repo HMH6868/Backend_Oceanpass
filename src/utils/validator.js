@@ -87,6 +87,7 @@ export function assertCreatePromotion(body) {
     valid_from,
     valid_to,
     is_active,
+    max_uses, // Thêm
   } = body || {};
 
   if (!code || typeof code !== 'string' || code.trim().length < 3 || code.trim().length > 64) {
@@ -154,6 +155,16 @@ export function assertCreatePromotion(body) {
     throw err;
   }
 
+  // *** Logic mới: validation cho max_uses ***
+  if (max_uses !== undefined && max_uses !== null) {
+    const v = Number(max_uses);
+    if (!Number.isInteger(v) || v < 0) {
+      const err = new Error('max_uses phải là số nguyên ≥ 0');
+      err.status = 400;
+      throw err;
+    }
+  }
+
   // description optional: giới hạn độ dài nếu có
   if (description !== undefined && typeof description !== 'string') {
     const err = new Error('description phải là chuỗi');
@@ -181,6 +192,7 @@ export function assertUpdatePromotion(body) {
     'valid_from',
     'valid_to',
     'is_active',
+    'max_uses', // Thêm
   ];
   const keys = Object.keys(body);
   if (keys.length === 0) {
@@ -288,6 +300,16 @@ export function assertUpdatePromotion(body) {
     const err = new Error('is_active phải là boolean');
     err.status = 400;
     throw err;
+  }
+
+  // *** Logic mới: validation cho max_uses ***
+  if (body.max_uses !== undefined && body.max_uses !== null) {
+    const v = Number(body.max_uses);
+    if (!Number.isInteger(v) || v < 0) {
+      const err = new Error('max_uses phải là số nguyên ≥ 0');
+      err.status = 400;
+      throw err;
+    }
   }
 }
 
