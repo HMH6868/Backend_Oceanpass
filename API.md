@@ -31,12 +31,18 @@ Các API này có thể được truy cập bởi bất kỳ ai mà không cần
 
 Yêu cầu xác thực (`Bearer Token`).
 
-| Phương thức | Endpoint                 | Chức năng                                                          | Payload Mẫu (JSON)                                                     |
-| :---------- | :----------------------- | :----------------------------------------------------------------- | :--------------------------------------------------------------------- |
-| `GET`       | `/api/auth/me`           | 👤 Lấy thông tin **người dùng hiện tại.**                          | (Không cần)                                                            |
-| `PATCH`     | `/api/users/me`          | ✏️ **Cập nhật thông tin cá nhân** (chỉ `name`, `phone`, `avatar`). | `{"name": "Nguyen Van B", "phone": "0912345678", "avatar": "new_url"}` |
-| `PATCH`     | `/api/users/me/avatar`   | 🖼️ **Cập nhật ảnh đại diện** của người dùng.                       | `{"avatar": "https://i.imgur.com/new_avatar.png"}`                     |
-| `PATCH`     | `/api/users/me/password` | 🔑 **Thay đổi mật khẩu** của người dùng.                           | `{"currentPassword": "mat_khau_cu", "newPassword": "mat_khau_moi"}`    |
+| Phương thức | Endpoint                       | Chức năng                                                   | Payload Mẫu (JSON)                                                                     |
+| :---------- | :----------------------------- | :---------------------------------------------------------- | :------------------------------------------------------------------------------------- |
+| `GET`       | `/api/auth/me`                 | 👤 Lấy thông tin **người dùng hiện tại.**                   | (Không cần)                                                                            |
+| `POST`      | `/api/auth/logout`             | 🚪 **Đăng xuất.** Vô hiệu hóa token hiện tại ở phía server. | (Không cần)                                                                            |
+| `PATCH`     | `/api/users/me`                | ✏️ **Cập nhật thông tin cá nhân** (chỉ `name`, `phone`).    | `{"name": "Nguyen Van B", "phone": "0912345678"}`                                      |
+| `PATCH`     | `/api/users/me/avatar`         | 🖼️ **Cập nhật ảnh đại diện** của người dùng.                | `{"avatar": "https://i.imgur.com/new_avatar.png"}`                                     |
+| `PATCH`     | `/api/users/me/password`       | 🔑 **Thay đổi mật khẩu** của người dùng.                    | `{"currentPassword": "mat_khau_cu", "newPassword": "mat_khau_moi"}`                    |
+| `POST`      | `/api/bookings`                | 🛒 **Tạo đơn đặt vé mới** (trạng thái `pending`).           | `{"scheduleId": "uuid-chuyen-di", "seats": [{"seatId": "uuid-ghe", "type": "adult"}]}` |
+| `GET`       | `/api/bookings/my-bookings`    | 📄 Lấy **lịch sử đặt vé** của người dùng.                   | (Không cần)                                                                            |
+| `GET`       | `/api/bookings/:id`            | ℹ️ Lấy **thông tin chi tiết** một đơn đặt vé.               | (Không cần)                                                                            |
+| `PATCH`     | `/api/bookings/:id/promotion`  | ✅ Áp dụng **mã khuyến mãi** vào đơn vé.                    | `{"promotionCode": "NEW10"}`                                                           |
+| `POST`      | `/api/bookings/:id/passengers` | 👨‍👩‍👧‍👦 Thêm **thông tin hành khách** vào đơn vé.                | `{"passengers": [{"name": "Nguyen Van A", "dateOfBirth": "1990-01-01"}]}`              |
 
 ---
 
@@ -46,54 +52,49 @@ Các API này yêu cầu quyền admin (`role_id` là 1 hoặc 2).
 
 ### 🗓️ Quản lý Lịch trình (Schedules)
 
-| Phương thức | Endpoint             | Chức năng                                | Payload Mẫu (JSON)                                                                                                                                                                                             |
-| :---------- | :------------------- | :--------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`       | `/api/schedules`     | 📊 Lấy danh sách **toàn bộ lịch trình**. | (Không cần)                                                                                                                                                                                                    |
-| `POST`      | `/api/schedules`     | ✨ **Tạo lịch trình mới.**               | `{"route_id": "R_HCM_VT", "vessel_id": "V_SL1", "departure_time": "2025-10-10T08:00:00Z", "arrival_time": "2025-10-10T10:00:00Z", "status": "active", "base_adult_price": 350000, "base_child_price": 250000}` |
-| `PATCH`     | `/api/schedules/:id` | ✏️ **Cập nhật** lịch trình.              | `{"status": "cancelled", "departure_time": "2025-10-10T09:00:00Z"}`                                                                                                                                            |
-| `DELETE`    | `/api/schedules/:id` | 🗑️ **Xóa** lịch trình.                   | (Không cần)                                                                                                                                                                                                    |
+| Phương thức | Endpoint             | Chức năng                                | Payload Mẫu (JSON)                                                                              |
+| :---------- | :------------------- | :--------------------------------------- | :---------------------------------------------------------------------------------------------- |
+| `GET`       | `/api/schedules`     | 📊 Lấy danh sách **toàn bộ lịch trình**. | (Không cần)                                                                                     |
+| `POST`      | `/api/schedules`     | ✨ **Tạo lịch trình mới.**               | `{"route_id": "R_HCM_VT", "vessel_id": "V_SL1", "departure_time": "2025-10-10T08:00:00Z", ...}` |
+| `PATCH`     | `/api/schedules/:id` | ✏️ **Cập nhật** lịch trình.              | `{"status": "cancelled", "departure_time": "2025-10-10T09:00:00Z"}`                             |
+| `DELETE`    | `/api/schedules/:id` | 🗑️ **Xóa** lịch trình.                   | (Không cần)                                                                                     |
 
 ### 🚢 Quản lý Tàu (Vessel) & Sơ đồ ghế
 
-| Phương thức | Endpoint                                 | Chức năng                                         | Payload Mẫu (JSON)                                                                                          |
-| :---------- | :--------------------------------------- | :------------------------------------------------ | :---------------------------------------------------------------------------------------------------------- |
-| `POST`      | `/api/vessels`                           | ✨ **Tạo tàu mới.**                               | `{"name": "SuperFerry 01", "code": "SF01", "capacity": 300, "amenities": ["AC", "TV"], "status": "active"}` |
-| `PATCH`     | `/api/vessels/:id`                       | ✏️ **Cập nhật** thông tin tàu.                    | `{"name": "SuperFerry 01 Updated", "status": "maintenance"}`                                                |
-| `DELETE`    | `/api/vessels/:id`                       | 🗑️ **Xóa** tàu.                                   | (Không cần)                                                                                                 |
-| `POST`      | `/api/vessels/decks`                     | ✨ **Thêm Tầng** vào tàu.                         | `{"vessel_id": "uuid-cua-tau", "name": "Upper Deck", "level": 2}`                                           |
-| `PATCH`     | `/api/vessels/decks/:id`                 | ✏️ **Cập nhật** Tầng.                             | `{"name": "Tầng 2 VIP"}`                                                                                    |
-| `DELETE`    | `/api/vessels/decks/:id`                 | 🗑️ **Xóa** Tầng.                                  | (Không cần)                                                                                                 |
-| `POST`      | `/api/vessels/sections`                  | ✨ **Thêm Khoang** vào tầng.                      | `{"deck_id": "uuid-cua-tang", "name": "VIP Section", "type": "vip"}`                                        |
-| `PATCH`     | `/api/vessels/sections/:id`              | ✏️ **Cập nhật** Khoang.                           | `{"name": "VIP A"}`                                                                                         |
-| `PATCH`     | `/api/vessels/sections/:id/update-price` | 💰 **Cập nhật giá** cho toàn bộ ghế trong khoang. | `{"adult_price": 550000, "child_price": 450000}`                                                            |
-| `DELETE`    | `/api/vessels/sections/:id`              | 🗑️ **Xóa** Khoang.                                | (Không cần)                                                                                                 |
-| `POST`      | `/api/vessels/rows`                      | ✨ **Thêm Hàng** vào khoang.                      | `{"section_id": "uuid-cua-khoang", "row_number": "15"}`                                                     |
-| `PATCH`     | `/api/vessels/rows/:id`                  | ✏️ **Cập nhật** Hàng.                             | `{"row_number": "16"}`                                                                                      |
-| `DELETE`    | `/api/vessels/rows/:id`                  | 🗑️ **Xóa** Hàng.                                  | (Không cần)                                                                                                 |
-| `POST`      | `/api/vessels/seats`                     | ✨ **Thêm Ghế** vào hàng.                         | `{"row_id": "uuid-cua-hang", "seat_number": "15A", "adult_price": 500000, "child_price": 400000}`           |
-| `PATCH`     | `/api/vessels/seats/:id`                 | ✏️ **Cập nhật** Ghế.                              | `{"adult_price": 520000}`                                                                                   |
-| `DELETE`    | `/api/vessels/seats/:id`                 | 🗑️ **Xóa** Ghế.                                   | (Không cần)                                                                                                 |
+| Phương thức | Endpoint                                 | Chức năng                                         | Payload Mẫu (JSON)                                                   |
+| :---------- | :--------------------------------------- | :------------------------------------------------ | :------------------------------------------------------------------- |
+| `POST`      | `/api/vessels`                           | ✨ **Tạo tàu mới.**                               | `{"name": "SuperFerry 01", "code": "SF01", "capacity": 300, ...}`    |
+| `PATCH`     | `/api/vessels/:id`                       | ✏️ **Cập nhật** thông tin tàu.                    | `{"name": "SuperFerry 01 Updated", "status": "maintenance"}`         |
+| `DELETE`    | `/api/vessels/:id`                       | 🗑️ **Xóa** tàu.                                   | (Không cần)                                                          |
+| `POST`      | `/api/vessels/decks`                     | ✨ **Thêm Tầng** vào tàu.                         | `{"vessel_id": "uuid-cua-tau", "name": "Upper Deck", "level": 2}`    |
+| `PATCH`     | `/api/vessels/decks/:id`                 | ✏️ **Cập nhật** Tầng.                             | `{"name": "Tầng 2 VIP"}`                                             |
+| `DELETE`    | `/api/vessels/decks/:id`                 | 🗑️ **Xóa** Tầng.                                  | (Không cần)                                                          |
+| `POST`      | `/api/vessels/sections`                  | ✨ **Thêm Khoang** vào tầng.                      | `{"deck_id": "uuid-cua-tang", "name": "VIP Section", "type": "vip"}` |
+| `PATCH`     | `/api/vessels/sections/:id`              | ✏️ **Cập nhật** Khoang.                           | `{"name": "VIP A"}`                                                  |
+| `PATCH`     | `/api/vessels/sections/:id/update-price` | 💰 **Cập nhật giá** cho toàn bộ ghế trong khoang. | `{"adult_price": 550000, "child_price": 450000}`                     |
+| `DELETE`    | `/api/vessels/sections/:id`              | 🗑️ **Xóa** Khoang.                                | (Không cần)                                                          |
+| ...         | ...                                      | ...                                               | ...                                                                  |
 
 ### 🏛️ Quản lý Cảng (Ports)
 
-| Phương thức | Endpoint         | Chức năng             | Payload Mẫu (JSON)                                                                                                                   |
-| :---------- | :--------------- | :-------------------- | :----------------------------------------------------------------------------------------------------------------------------------- |
-| `POST`      | `/api/ports`     | ✨ **Tạo cảng mới.**  | `{"name": "Cảng Vũng Tàu", "code": "VTP", "city": "Vũng Tàu", "address": "123 Hạ Long", "latitude": 10.3460, "longitude": 107.0830}` |
-| `PATCH`     | `/api/ports/:id` | ✏️ **Cập nhật** cảng. | `{"name": "Cảng Tàu Khách Vũng Tàu"}`                                                                                                |
-| `DELETE`    | `/api/ports/:id` | 🗑️ **Xóa** cảng.      | (Không cần)                                                                                                                          |
+| Phương thức | Endpoint         | Chức năng             | Payload Mẫu (JSON)                                                  |
+| :---------- | :--------------- | :-------------------- | :------------------------------------------------------------------ |
+| `POST`      | `/api/ports`     | ✨ **Tạo cảng mới.**  | `{"name": "Cảng Vũng Tàu", "code": "VTP", "city": "Vũng Tàu", ...}` |
+| `PATCH`     | `/api/ports/:id` | ✏️ **Cập nhật** cảng. | `{"name": "Cảng Tàu Khách Vũng Tàu"}`                               |
+| `DELETE`    | `/api/ports/:id` | 🗑️ **Xóa** cảng.      | (Không cần)                                                         |
 
 ### ↔️ Quản lý Tuyến (Routes)
 
-| Phương thức | Endpoint          | Chức năng              | Payload Mẫu (JSON)                                                                                          |
-| :---------- | :---------------- | :--------------------- | :---------------------------------------------------------------------------------------------------------- |
-| `POST`      | `/api/routes`     | ✨ **Tạo tuyến mới.**  | `{"from_port_id": "PRT_HCM", "to_port_id": "PRT_VT", "distance_km": 96, "estimated_duration_minutes": 120}` |
-| `PATCH`     | `/api/routes/:id` | ✏️ **Cập nhật** tuyến. | `{"distance_km": 100}`                                                                                      |
-| `DELETE`    | `/api/routes/:id` | 🗑️ **Xóa** tuyến.      | (Không cần)                                                                                                 |
+| Phương thức | Endpoint          | Chức năng              | Payload Mẫu (JSON)                                         |
+| :---------- | :---------------- | :--------------------- | :--------------------------------------------------------- |
+| `POST`      | `/api/routes`     | ✨ **Tạo tuyến mới.**  | `{"from_port_id": "PRT_HCM", "to_port_id": "PRT_VT", ...}` |
+| `PATCH`     | `/api/routes/:id` | ✏️ **Cập nhật** tuyến. | `{"distance_km": 100}`                                     |
+| `DELETE`    | `/api/routes/:id` | 🗑️ **Xóa** tuyến.      | (Không cần)                                                |
 
 ### 🎟️ Quản lý Khuyến mãi (Promotions)
 
-| Phương thức | Endpoint              | Chức năng                   | Payload Mẫu (JSON)                                                                                                                                                                                                                                           |
-| :---------- | :-------------------- | :-------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST`      | `/api/promotions`     | ✨ **Tạo khuyến mãi mới.**  | `{"name": "Chào Thu", "code": "HELLOFALL", "description": "Giảm giá mùa thu", "type": "percentage", "value": 15, "min_amount": 500000, "max_discount": 100000, "valid_from": "2025-09-01T00:00:00Z", "valid_to": "2025-09-30T23:59:59Z", "is_active": true}` |
-| `PATCH`     | `/api/promotions/:id` | ✏️ **Cập nhật** khuyến mãi. | `{"description": "Giảm 15% cho mọi chuyến đi", "is_active": false}`                                                                                                                                                                                          |
-| `DELETE`    | `/api/promotions/:id` | 🗑️ **Xóa** khuyến mãi.      | (Không cần)                                                                                                                                                                                                                                                  |
+| Phương thức | Endpoint              | Chức năng                   | Payload Mẫu (JSON)                                                     |
+| :---------- | :-------------------- | :-------------------------- | :--------------------------------------------------------------------- |
+| `POST`      | `/api/promotions`     | ✨ **Tạo khuyến mãi mới.**  | `{"name": "Chào Thu", "code": "HELLOFALL", "type": "percentage", ...}` |
+| `PATCH`     | `/api/promotions/:id` | ✏️ **Cập nhật** khuyến mãi. | `{"description": "Giảm 15% cho mọi chuyến đi", "is_active": false}`    |
+| `DELETE`    | `/api/promotions/:id` | 🗑️ **Xóa** khuyến mãi.      | (Không cần)                                                            |
