@@ -10,7 +10,6 @@ import schedulesRoutes from './routes/schedules.routes.js';
 import userRoutes from './routes/user.routes.js';
 import vesselRoutes from './routes/vessel.routes.js';
 import { errorHandler } from './middlewares/error.middleware.js';
-import bookingRoutes from './routes/booking.routes.js';
 import employeeRoutes from './routes/employee.routes.js';
 
 dotenv.config();
@@ -47,9 +46,6 @@ app.use('/api/vessels', vesselRoutes);
 
 //API lấy danh lịch trình
 app.use('/api/schedules', schedulesRoutes);
-
-//API bookings
-app.use('/api/bookings', bookingRoutes);
 
 //API employees
 app.use('/api/employees', employeeRoutes);
