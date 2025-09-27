@@ -1,2 +1,7 @@
 npm i express pg dotenv bcrypt jsonwebtoken
 npm i -D nodemon
+
+
+short-uuid: Dùng để tạo mã đặt vé (booking code) ngắn gọn, thân thiện hơn.
+
+node-cron: Dùng để chạy tác vụ nền (kiểm tra và hủy đơn hàng hết hạn).

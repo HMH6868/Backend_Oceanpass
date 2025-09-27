@@ -4,11 +4,25 @@ import { pool } from '../db.js';
 // === PUBLIC SERVICES ===
 
 /**
- * Lấy danh sách tất cả tàu (thông tin cơ bản)
+ * Lấy danh sách tất cả tàu (đã cập nhật để tự động tính capacity)
  */
 export const listAllVessels = async () => {
   const { rows } = await pool.query(
-    'SELECT id, name, code, capacity, status, amenities FROM vessels ORDER BY name ASC'
+    `
+    SELECT 
+      v.id, v.name, v.code, v.status, v.amenities,
+      (
+        SELECT COUNT(st.id) 
+        FROM seats st
+        JOIN "rows" r ON st.row_id = r.id
+        JOIN sections s ON r.section_id = s.id
+        JOIN decks d ON s.deck_id = d.id
+        JOIN seat_maps sm ON d.seat_map_id = sm.id
+        WHERE sm.vessel_id = v.id
+      ) AS capacity
+    FROM vessels v 
+    ORDER BY v.name ASC
+    `
   );
   return rows;
 };
@@ -19,7 +33,16 @@ export const listAllVessels = async () => {
 export const getVesselDetailsById = async (vesselId) => {
   const query = `
     SELECT
-      v.id, v.name, v.code, v.capacity, v.amenities, v.status,
+      v.id, v.name, v.code, v.amenities, v.status,
+      (
+        SELECT COUNT(st.id) 
+        FROM seats st
+        JOIN "rows" r ON st.row_id = r.id
+        JOIN sections s ON r.section_id = s.id
+        JOIN decks d ON s.deck_id = d.id
+        JOIN seat_maps sm ON d.seat_map_id = sm.id
+        WHERE sm.vessel_id = v.id
+      ) AS capacity,
       json_agg(DISTINCT
         jsonb_build_object(
           'deck_id', d.id,
@@ -67,13 +90,12 @@ export const getVesselDetailsById = async (vesselId) => {
 // === ADMIN SERVICES ===
 
 // --- Vessel ---
-export const createVessel = async ({ name, code, capacity, amenities, status }) => {
+export const createVessel = async ({ name, code, amenities, status }) => {
   const { rows } = await pool.query(
-    'INSERT INTO vessels (id, name, code, capacity, amenities, status) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5) RETURNING *',
-    [name, code, capacity, amenities, status]
+    'INSERT INTO vessels (id, name, code, amenities, status) VALUES (gen_random_uuid(), $1, $2, $3, $4) RETURNING *',
+    [name, code, amenities, status]
   );
 
-  // Khi tạo tàu mới, tự động tạo một seat_map cho nó
   const newVessel = rows[0];
   await pool.query(
     'INSERT INTO seat_maps (id, vessel_id, description) VALUES (gen_random_uuid(), $1, $2)',
@@ -96,7 +118,6 @@ export const updateVessel = async (id, dataToUpdate) => {
   const updatedData = {
     name: dataToUpdate.name || currentVessel.name,
     code: dataToUpdate.code || currentVessel.code,
-    capacity: dataToUpdate.capacity || currentVessel.capacity,
     amenities: dataToUpdate.amenities || currentVessel.amenities,
     status: dataToUpdate.status || currentVessel.status,
   };
@@ -107,15 +128,8 @@ export const updateVessel = async (id, dataToUpdate) => {
   }
 
   const { rows } = await pool.query(
-    'UPDATE vessels SET name = $1, code = $2, capacity = $3, amenities = $4, status = $5 WHERE id = $6 RETURNING *',
-    [
-      updatedData.name,
-      updatedData.code,
-      updatedData.capacity,
-      updatedData.amenities,
-      updatedData.status,
-      id,
-    ]
+    'UPDATE vessels SET name = $1, code = $2, amenities = $3, status = $4 WHERE id = $5 RETURNING *',
+    [updatedData.name, updatedData.code, updatedData.amenities, updatedData.status, id]
   );
   return rows[0];
 };
@@ -277,7 +291,9 @@ export const deleteSection = async (id) => {
 // --- Row ---
 export const addRow = async ({ section_id, row_number }) => {
   // BƯỚC 1: Kiểm tra xem section_id có hợp lệ không
-  const sectionResult = await pool.query('SELECT deck_id FROM sections WHERE id = $1', [section_id]);
+  const sectionResult = await pool.query('SELECT deck_id FROM sections WHERE id = $1', [
+    section_id,
+  ]);
   if (sectionResult.rowCount === 0) {
     throw new Error('Section not found');
   }
@@ -326,10 +342,9 @@ export const addSeat = async ({ row_id, seat_number, adult_price, child_price })
   }
 
   // BƯỚC 1: Đếm số ghế hiện tại trong hàng
-  const seatCountResult = await pool.query(
-    'SELECT COUNT(*) FROM seats WHERE row_id = $1',
-    [row_id]
-  );
+  const seatCountResult = await pool.query('SELECT COUNT(*) FROM seats WHERE row_id = $1', [
+    row_id,
+  ]);
   const seatCount = parseInt(seatCountResult.rows[0].count, 10);
 
   // BƯỚC 2: Nếu số ghế đã là 8 hoặc nhiều hơn, ném ra lỗi
@@ -358,11 +373,10 @@ export const deleteSeat = async (id) => {
   return { message: 'Seat deleted successfully.' };
 };
 
-
 // === SERVICE MỚI ĐỂ CẬP NHẬT GIÁ CHO KHOANG ===
 export const updatePriceForSection = async (section_id, { adult_price, child_price }) => {
-    const { rows } = await pool.query(
-        `
+  const { rows } = await pool.query(
+    `
         UPDATE seats
         SET adult_price = $1, child_price = $2
         WHERE row_id IN (
@@ -370,17 +384,17 @@ export const updatePriceForSection = async (section_id, { adult_price, child_pri
         )
         RETURNING *;
         `,
-        [adult_price, child_price, section_id]
-    );
+    [adult_price, child_price, section_id]
+  );
 
-    if (rows.length === 0) {
-        // Có thể khoang này không có ghế nào, hoặc section_id không đúng
-        // Trong trường hợp này, không báo lỗi mà trả về thông báo thành công nhưng không có gì thay đổi
-        return { message: 'Không có ghế nào được cập nhật (có thể khoang trống hoặc ID không đúng).' };
-    }
+  if (rows.length === 0) {
+    // Có thể khoang này không có ghế nào, hoặc section_id không đúng
+    // Trong trường hợp này, không báo lỗi mà trả về thông báo thành công nhưng không có gì thay đổi
+    return { message: 'Không có ghế nào được cập nhật (có thể khoang trống hoặc ID không đúng).' };
+  }
 
-    return { 
-        message: `Đã cập nhật giá cho ${rows.length} ghế thành công.`,
-        updated_count: rows.length 
-    };
+  return {
+    message: `Đã cập nhật giá cho ${rows.length} ghế thành công.`,
+    updated_count: rows.length,
+  };
 };

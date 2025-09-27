@@ -110,3 +110,89 @@ export const deleteSchedule = async (id) => {
     throw err;
   }
 };
+
+/**
+ * Lấy thông tin chi tiết của một lịch trình, bao gồm cả sơ đồ ghế và trạng thái của từng ghế.
+ * @param {string} scheduleId - ID của lịch trình cần xem
+ * @returns {Promise<object>} - Chi tiết lịch trình và sơ đồ ghế.
+ */
+export const getScheduleWithSeatMap = async (scheduleId) => {
+  // Lấy thông tin cơ bản của schedule và vessel
+  const scheduleQuery = `
+    SELECT 
+      s.id as schedule_id, s.departure_time, s.arrival_time, s.status,
+      v.id as vessel_id, v.name as vessel_name,
+      p_from.name as from_port_name,
+      p_to.name as to_port_name
+    FROM schedules s
+    JOIN vessels v ON s.vessel_id = v.id
+    JOIN routes r ON s.route_id = r.id
+    JOIN ports p_from ON r.from_port_id = p_from.id
+    JOIN ports p_to ON r.to_port_id = p_to.id
+    WHERE s.id = $1
+  `;
+  const scheduleResult = await pool.query(scheduleQuery, [scheduleId]);
+  if (scheduleResult.rows.length === 0) {
+    throw Object.assign(new Error('Schedule not found'), { status: 404 });
+  }
+  const scheduleInfo = scheduleResult.rows[0];
+
+  // Lấy toàn bộ sơ đồ ghế tĩnh của con tàu
+  const seatMapQuery = `
+    SELECT
+      d.id as deck_id, d.name as deck_name, d.level as deck_level,
+      json_agg(
+        jsonb_build_object(
+          'section_id', s.id, 'section_name', s.name, 'section_type', s.type,
+          'rows', (
+            SELECT json_agg(
+              jsonb_build_object(
+                'row_id', r.id, 'row_number', r.row_number,
+                'seats', (
+                  SELECT json_agg(
+                    jsonb_build_object(
+                      'seat_id', st.id, 'seat_number', st.seat_number,
+                      'adult_price', st.adult_price, 'child_price', st.child_price
+                    ) ORDER BY st.seat_number
+                  ) FROM seats st WHERE st.row_id = r.id
+                )
+              ) ORDER BY r.row_number::int
+            ) FROM "rows" r WHERE r.section_id = s.id
+          )
+        ) ORDER BY s.name
+      ) as sections
+    FROM decks d
+    JOIN sections s ON s.deck_id = d.id
+    JOIN seat_maps sm ON d.seat_map_id = sm.id
+    WHERE sm.vessel_id = $1
+    GROUP BY d.id
+    ORDER BY d.level;
+  `;
+  const seatMapResult = await pool.query(seatMapQuery, [scheduleInfo.vessel_id]);
+  const seatMap = { decks: seatMapResult.rows };
+
+  // Lấy trạng thái động của các ghế cho chuyến đi này
+  const seatStatusResult = await pool.query(
+    `SELECT seat_id, status FROM schedule_seat_status WHERE schedule_id = $1`,
+    [scheduleId]
+  );
+  const seatStatuses = new Map(seatStatusResult.rows.map((row) => [row.seat_id, row.status]));
+
+  // Gộp trạng thái động vào sơ đồ ghế tĩnh
+  for (const deck of seatMap.decks) {
+    for (const section of deck.sections) {
+      for (const row of section.rows) {
+        for (const seat of row.seats) {
+          // Mặc định là 'available', nếu có trong map thì cập nhật lại
+          seat.status = seatStatuses.get(seat.seat_id) || 'available';
+        }
+      }
+    }
+  }
+
+  return {
+    ...scheduleInfo,
+    seatMap: seatMap,
+  };
+};
+

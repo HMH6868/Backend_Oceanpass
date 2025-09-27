@@ -8,7 +8,7 @@ export const getPromotions = async () => {
 export const createPromotion = async (promotion) => {
   const {
     code,
-    name, // Đã thêm lại trường name
+    name,
     description,
     type,
     value,
@@ -17,13 +17,14 @@ export const createPromotion = async (promotion) => {
     valid_from,
     valid_to,
     is_active,
+    max_uses, // Thêm
   } = promotion;
 
   const { rows } = await pool.query(
-    'INSERT INTO promotions (id, code, name, description, type, value, min_amount, max_discount, valid_from, valid_to, is_active) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+    'INSERT INTO promotions (id, code, name, description, type, value, min_amount, max_discount, valid_from, valid_to, is_active, max_uses) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
     [
       code,
-      name, // Thêm lại name vào đây
+      name,
       description,
       type,
       value,
@@ -32,6 +33,7 @@ export const createPromotion = async (promotion) => {
       valid_from,
       valid_to,
       is_active,
+      max_uses, // Thêm
     ]
   );
   return rows[0];
@@ -48,7 +50,7 @@ export const updatePromotion = async (id, dataToUpdate) => {
 
   const updatedData = {
     code: dataToUpdate.code || currentPromotion.code,
-    name: dataToUpdate.name || currentPromotion.name, // Thêm name
+    name: dataToUpdate.name || currentPromotion.name,
     description: dataToUpdate.description || currentPromotion.description,
     type: dataToUpdate.type || currentPromotion.type,
     value: dataToUpdate.value || currentPromotion.value,
@@ -57,13 +59,14 @@ export const updatePromotion = async (id, dataToUpdate) => {
     valid_from: dataToUpdate.valid_from || currentPromotion.valid_from,
     valid_to: dataToUpdate.valid_to || currentPromotion.valid_to,
     is_active: dataToUpdate.is_active !== undefined ? dataToUpdate.is_active : currentPromotion.is_active,
+    max_uses: dataToUpdate.max_uses !== undefined ? dataToUpdate.max_uses : currentPromotion.max_uses, // Thêm
   };
 
   const { rows } = await pool.query(
-    'UPDATE promotions SET code = $1, name = $2, description = $3, type = $4, value = $5, min_amount = $6, max_discount = $7, valid_from = $8, valid_to = $9, is_active = $10 WHERE id = $11 RETURNING *',
+    'UPDATE promotions SET code = $1, name = $2, description = $3, type = $4, value = $5, min_amount = $6, max_discount = $7, valid_from = $8, valid_to = $9, is_active = $10, max_uses = $11 WHERE id = $12 RETURNING *',
     [
       updatedData.code,
-      updatedData.name, // Thêm name
+      updatedData.name,
       updatedData.description,
       updatedData.type,
       updatedData.value,
@@ -72,6 +75,7 @@ export const updatePromotion = async (id, dataToUpdate) => {
       updatedData.valid_from,
       updatedData.valid_to,
       updatedData.is_active,
+      updatedData.max_uses, // Thêm
       id,
     ]
   );
@@ -87,14 +91,12 @@ export const deletePromotion = async (id) => {
   }
 };
 
-
-
 export const checkPromotion = async ({ code, total_amount }) => {
   // 1. Tìm mã khuyến mãi
   const { rows } = await pool.query('SELECT * FROM promotions WHERE code = $1', [code]);
   if (rows.length === 0) {
     const err = new Error('Mã khuyến mãi không hợp lệ');
-    err.status = 404; // Not Found
+    err.status = 404;
     throw err;
   }
   const promotion = rows[0];
@@ -102,9 +104,17 @@ export const checkPromotion = async ({ code, total_amount }) => {
   // 2. Kiểm tra mã có được kích hoạt không
   if (!promotion.is_active) {
     const err = new Error('Mã khuyến mãi này đã bị vô hiệu hóa');
-    err.status = 400; // Bad Request
+    err.status = 400;
     throw err;
   }
+    
+  // *** Logic mới: Kiểm tra số lượt sử dụng ***
+  if (promotion.max_uses !== null && promotion.uses_count >= promotion.max_uses) {
+    const err = new Error('Mã khuyến mãi đã hết lượt sử dụng');
+    err.status = 400;
+    throw err;
+  }
+
 
   // 3. Kiểm tra ngày hiệu lực
   const now = new Date();
@@ -112,7 +122,7 @@ export const checkPromotion = async ({ code, total_amount }) => {
   const valid_to = new Date(promotion.valid_to);
   if (now < valid_from || now > valid_to) {
     const err = new Error('Mã khuyến mãi đã hết hạn hoặc chưa có hiệu lực');
-    err.status = 400; // Bad Request
+    err.status = 400;
     throw err;
   }
 
@@ -123,7 +133,7 @@ export const checkPromotion = async ({ code, total_amount }) => {
         'vi-VN'
       )} ₫ để áp dụng mã này`
     );
-    err.status = 400; // Bad Request
+    err.status = 400;
     throw err;
   }
 

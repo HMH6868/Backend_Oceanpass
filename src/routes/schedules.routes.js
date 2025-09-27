@@ -3,6 +3,7 @@ import {
   createSchedule,
   deleteSchedule,
   getSchedules,
+  handleGetScheduleWithSeatMap,
   searchSchedules,
   updateSchedule,
 } from '../controllers/schedules.controller.js';
@@ -11,9 +12,10 @@ import { checkAdminRole, requireAuth } from '../middlewares/auth.middleware.js';
 const router = Router();
 
 // --- PUBLIC ROUTES ---
-// API tìm kiếm chuyến đi
 router.get('/search', searchSchedules);
 router.get('/', getSchedules);
+// API MỚI: Lấy chi tiết một chuyến và sơ đồ ghế
+router.get('/:id/seat-map', handleGetScheduleWithSeatMap);
 
 // --- ADMIN ROUTES ---
 router.post('/', requireAuth, checkAdminRole, createSchedule);
