@@ -123,7 +123,6 @@ CREATE TABLE "vessels" (
   "id" VARCHAR(50) PRIMARY KEY,
   "name" VARCHAR(255) NOT NULL,
   "code" VARCHAR(20) NOT NULL UNIQUE,
-  "capacity" INT NOT NULL CHECK (capacity > 0),
   "amenities" TEXT[],
   "status" vessel_status NOT NULL DEFAULT 'active'
 );
