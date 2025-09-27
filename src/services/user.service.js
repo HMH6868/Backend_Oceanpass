@@ -56,7 +56,14 @@ export async function updateMe(userId, { name, phone, avatar }) {
     err.status = 404;
     throw err;
   }
-  return rs.rows[0];
+  
+  const user = rs.rows[0];
+  
+  // Lấy role_name từ database
+  const roleRes = await query('SELECT name FROM roles WHERE id = $1', [user.role_id]);
+  const userRoleName = roleRes.rows[0]?.name;
+  
+  return { ...user, role_name: userRoleName };
 }
 
 

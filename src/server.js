@@ -12,7 +12,12 @@ import routesRoutes from './routes/routes.routes.js';
 import schedulesRoutes from './routes/schedules.routes.js';
 import userRoutes from './routes/user.routes.js';
 import vesselRoutes from './routes/vessel.routes.js';
+
+import { errorHandler } from './middlewares/error.middleware.js';
+import employeeRoutes from './routes/employee.routes.js';
+
 import { expirePendingBookings } from './services/booking.service.js';
+
 
 dotenv.config();
 
@@ -49,7 +54,12 @@ app.use('/api/vessels', vesselRoutes);
 //API lấy danh lịch trình
 app.use('/api/schedules', schedulesRoutes);
 
+//API employees
+app.use('/api/employees', employeeRoutes);
+
+
 app.use('/api/bookings', bookingRoutes);
+
 
 // ==== phần xử lý lỗi tập trung ====
 app.use(errorHandler);
